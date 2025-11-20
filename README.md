@@ -1,99 +1,133 @@
-# tester
+# LookTown GC — AI-консультант для салона красоты
 
-An agent implementing a base ReAct agent using LangGraph
-Agent generated with [`googleCloudPlatform/agent-starter-pack`](https://github.com/GoogleCloudPlatform/agent-starter-pack) version `0.20.2`
+AI-консультант для салона красоты LookTown, работающий через Telegram бота. Проект автоматизирует консультации клиентов, запись на услуги, управление бронированиями и интеграцию с системой YClients.
 
-## Project Structure
+## Что это?
 
-This project is organized as follows:
+Telegram бот на базе LangGraph и Google Vertex AI (Gemini), который:
+- Консультирует клиентов об услугах салона
+- Записывает клиентов на услуги
+- Управляет бронированиями (просмотр, перенос, отмена)
+- Интегрируется с YClients API для работы с реальными данными
+
+## Как работает?
+
+Проект использует архитектуру с **роутер-агентом**, который распределяет запросы между специализированными агентами:
+
+1. **Роутер** (`router_agent`) — анализирует сообщение и выбирает нужного агента
+2. **Специализированные агенты** — обрабатывают конкретные задачи:
+   - `greeting` — приветствие
+   - `information_gathering` — сбор информации об услугах
+   - `booking` — запись на услугу
+   - `booking_to_master` — запись к конкретному мастеру
+   - `view_my_booking` — просмотр записей клиента
+   - `reschedule` — перенос записи
+   - `cancellation_request` — отмена записи
+
+Каждый агент использует набор инструментов для взаимодействия с YClients API и получения актуальной информации.
+
+## Структура проекта
 
 ```
-tester/
-├── app/                 # Core application code
-│   ├── agent.py         # Main agent logic
-│   ├── fast_api_app.py  # FastAPI Backend server
-│   └── app_utils/       # App utilities and helpers
-├── .cloudbuild/         # CI/CD pipeline configurations for Google Cloud Build
-├── deployment/          # Infrastructure and deployment scripts
-├── notebooks/           # Jupyter notebooks for prototyping and evaluation
-├── tests/               # Unit, integration, and load tests
-├── Makefile             # Makefile for common commands
-├── GEMINI.md            # AI-assisted development guide
-└── pyproject.toml       # Project dependencies and configuration
+├── app/
+│   ├── agents/              # Агенты (роутер + специализированные)
+│   ├── tools/                # Инструменты для работы с YClients API
+│   ├── telegram/             # Telegram бот (polling и webhook)
+│   ├── config/               # Конфигурация LLM, памяти, чекпоинтов
+│   └── app_utils/            # Вспомогательные утилиты
+├── editor/                   # Веб-эдитор для редактирования промптов
+├── frontend/                 # Streamlit интерфейс для тестирования
+├── start_telegram_bot.py     # Запуск бота в режиме polling
+└── main.py                   # FastAPI для webhook режима (Cloud Run)
 ```
 
-## Requirements
+## Быстрый старт
 
-Before you begin, ensure you have:
-- **uv**: Python package manager (used for all dependency management in this project) - [Install](https://docs.astral.sh/uv/getting-started/installation/) ([add packages](https://docs.astral.sh/uv/concepts/dependencies/) with `uv add <package>`)
-- **Google Cloud SDK**: For GCP services - [Install](https://cloud.google.com/sdk/docs/install)
-- **Terraform**: For infrastructure deployment - [Install](https://developer.hashicorp.com/terraform/downloads)
-- **make**: Build automation tool - [Install](https://www.gnu.org/software/make/) (pre-installed on most Unix-based systems)
-
-
-## Quick Start (Local Testing)
-
-Install required packages and launch the local development environment:
+### Установка зависимостей
 
 ```bash
-make install && make playground
+uv sync
 ```
 
-## Commands
-
-| Command              | Description                                                                                 |
-| -------------------- | ------------------------------------------------------------------------------------------- |
-| `make install`       | Install all required dependencies using uv                                                  |
-| `make playground`    | Launch local development environment with backend and frontend|
-| `make deploy`        | Deploy agent to Cloud Run (use `IAP=true` to enable Identity-Aware Proxy, `PORT=8080` to specify container port) |
-| `make local-backend` | Launch local development server with hot-reload |
-| `make test`          | Run unit and integration tests                                                              |
-| `make lint`          | Run code quality checks (codespell, ruff, mypy)                                             |
-| `make setup-dev-env` | Set up development environment resources using Terraform                         |
-
-For full command options and usage, refer to the [Makefile](Makefile).
-
-
-
-
-
-## Usage
-
-This template follows a "bring your own agent" approach - you focus on your business logic, and the template handles everything else (UI, infrastructure, deployment, monitoring).
-
-1. **Prototype:** Build your Generative AI Agent using the intro notebooks in `notebooks/` for guidance. Use Vertex AI Evaluation to assess performance.
-2. **Integrate:** Import your agent into the app by editing `app/agent.py`.
-3. **Test:** Explore your agent functionality using the Streamlit playground with `make playground`. The playground offers features like chat history, user feedback, and various input types, and automatically reloads your agent on code changes.
-4. **Deploy:** Set up and initiate the CI/CD pipelines, customizing tests as necessary. Refer to the [deployment section](#deployment) for comprehensive instructions. For streamlined infrastructure deployment, simply run `uvx agent-starter-pack setup-cicd`. Check out the [`agent-starter-pack setup-cicd` CLI command](https://googlecloudplatform.github.io/agent-starter-pack/cli/setup_cicd.html). Currently supports GitHub with both Google Cloud Build and GitHub Actions as CI/CD runners.
-5. **Monitor:** Track performance and gather insights using Cloud Logging, Tracing, and the Looker Studio dashboard to iterate on your application.
-
-The project includes a `GEMINI.md` file that provides context for AI tools like Gemini CLI when asking questions about your template.
-
-
-## Deployment
-
-> **Note:** For a streamlined one-command deployment of the entire CI/CD pipeline and infrastructure using Terraform, you can use the [`agent-starter-pack setup-cicd` CLI command](https://googlecloudplatform.github.io/agent-starter-pack/cli/setup_cicd.html). Currently supports GitHub with both Google Cloud Build and GitHub Actions as CI/CD runners.
-
-### Dev Environment
-
-You can test deployment towards a Dev Environment using the following command:
+### Запуск Telegram бота (polling)
 
 ```bash
-gcloud config set project <your-dev-project-id>
-make deploy
+uv run python start_telegram_bot.py
 ```
 
+### Запуск Streamlit интерфейса
 
-The repository includes a Terraform configuration for the setup of the Dev Google Cloud project.
-See [deployment/README.md](deployment/README.md) for instructions.
+```bash
+uv run streamlit run frontend/streamlit_app.py
+```
 
-### Production Deployment
+### Запуск эдитора промптов
 
-The repository includes a Terraform configuration for the setup of a production Google Cloud project. Refer to [deployment/README.md](deployment/README.md) for detailed instructions on how to deploy the infrastructure and application.
+```bash
+python run_editor.py
+```
 
+## Требования
 
-## Monitoring and Observability
-> You can use [this Looker Studio dashboard](https://lookerstudio.google.com/c/reporting/fa742264-4b4b-4c56-81e6-a667dd0f853f/page/tEnnC
-) template for visualizing events being logged in BigQuery. See the "Setup Instructions" tab to getting started.
+- Python 3.10–3.13
+- `uv` — менеджер пакетов Python
+- Google Cloud SDK (для работы с Vertex AI)
+- Переменные окружения в `.env`:
+  - `TELEGRAM_BOT_TOKEN` — токен Telegram бота
+  - Настройки Google Cloud для Vertex AI
 
-The application uses OpenTelemetry for comprehensive observability with all events being sent to Google Cloud Trace and Logging for monitoring and to BigQuery for long term storage.
+## Архитектура
+
+### Агенты
+
+Агенты создаются через `create_react_agent` из LangGraph. Каждый агент:
+- Использует Gemini 2.5 Flash с `temperature=0`
+- Имеет свой промпт с инструкциями
+- Доступен набор инструментов для работы с данными
+
+Подробнее: [`app/agents/README.md`](app/agents/README.md)
+
+### Инструменты
+
+Инструменты — функции, которые агенты вызывают для получения данных или выполнения действий:
+- Работа с услугами и категориями
+- Поиск мастеров
+- Создание и управление бронированиями
+- Интеграция с YClients API
+
+Подробнее: [`app/tools/README.md`](app/tools/README.md)
+
+### Память и чекпоинты
+
+Проект использует Firestore для хранения состояния диалогов (checkpoints) через `langgraph-checkpoint-firestore`. Это позволяет:
+- Сохранять контекст разговора
+- Восстанавливать диалог после перезапуска
+- Управлять историей сообщений
+
+## Развертывание
+
+### Webhook режим (Cloud Run)
+
+Для production используется FastAPI приложение (`main.py`) с webhook эндпоинтом `/telegram/webhook`.
+
+```bash
+# Деплой на Cloud Run
+gcloud run deploy telegram-bot \
+  --source . \
+  --region us-central1 \
+  --allow-unauthenticated
+```
+
+## Дополнительные инструменты
+
+- **Эдитор промптов** — веб-интерфейс для редактирования промптов агентов без изменения кода
+- **Streamlit playground** — интерфейс для тестирования агентов с историей чата и обратной связью
+
+## Технологии
+
+- **LangGraph** — создание агентов и управление состоянием
+- **Google Vertex AI (Gemini)** — языковая модель
+- **python-telegram-bot** — Telegram Bot API
+- **FastAPI** — веб-сервер для webhook
+- **Firestore** — хранение чекпоинтов и состояния
+- **YClients API** — интеграция с системой бронирования
