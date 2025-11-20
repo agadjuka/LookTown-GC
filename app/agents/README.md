@@ -48,21 +48,47 @@ llm = create_llm(model=LLM, location=LOCATION, temperature=0)
 - Имя переменной агента: `{route_name}_agent`
 - Имя константы инструкции: `{ROUTE_NAME}_STAGE_INSTRUCTION` (верхний регистр)
 
-### 2. Зарегистрировать в message_router.py
+### 2. Зарегистрировать агента в реестре
 
-#### 2.1. Добавить импорт (строки 25-31)
+**ВАЖНО:** После создания файла агента необходимо зарегистрировать его в реестре.
+
+Открой файл `app/agents/registry.py` и добавь информацию о новом агенте в метод `_load_agents()`:
+
+```python
+self._agents = {
+    ...
+    "{route_name}": {
+        "file": "{route_name}_stage.py",
+        "name": "Читаемое имя агента",
+    },
+}
+```
+
+**Пример:**
+```python
+"consultation": {
+    "file": "consultation_stage.py",
+    "name": "Консультация",
+},
+```
+
+После регистрации агент автоматически появится в эдиторе промптов.
+
+### 3. Зарегистрировать в message_router.py
+
+#### 3.1. Добавить импорт (строки 25-31)
 
 ```python
 from app.agents.{route_name}_stage import {route_name}_agent
 ```
 
-#### 2.2. Добавить маршрут в valid_routes (строка 171)
+#### 3.2. Добавить маршрут в valid_routes (строка 171)
 
 ```python
 valid_routes = [..., "{route_name}"]
 ```
 
-#### 2.3. Добавить в словарь agents (строки 244-252)
+#### 3.3. Добавить в словарь agents (строки 244-252)
 
 ```python
 agents = {
@@ -71,7 +97,7 @@ agents = {
 }
 ```
 
-### 3. Обновить ROUTER_INSTRUCTION
+### 4. Обновить ROUTER_INSTRUCTION
 
 В файле `app/config/agent_config.py` (строки 27-34) добавить описание маршрута:
 
@@ -88,27 +114,39 @@ ROUTER_INSTRUCTION = """...
 
 Удали файл `{route_name}_stage.py` из папки `agents/`
 
-### 2. Удалить из message_router.py
+### 2. Удалить из реестра
 
-#### 2.1. Удалить импорт (строки 25-31)
+Открой файл `app/agents/registry.py` и удали запись о агенте из метода `_load_agents()`:
+
+```python
+# Удали эту запись:
+"{route_name}": {
+    "file": "{route_name}_stage.py",
+    "name": "...",
+},
+```
+
+### 3. Удалить из message_router.py
+
+#### 3.1. Удалить импорт (строки 25-31)
 
 Удали строку:
 ```python
 from app.agents.{route_name}_stage import {route_name}_agent
 ```
 
-#### 2.2. Удалить из valid_routes (строка 171)
+#### 3.2. Удалить из valid_routes (строка 171)
 
 Удали `"{route_name}"` из списка `valid_routes`
 
-#### 2.3. Удалить из словаря agents (строки 244-252)
+#### 3.3. Удалить из словаря agents (строки 244-252)
 
 Удали запись:
 ```python
 "{route_name}": {route_name}_agent,
 ```
 
-### 3. Удалить из ROUTER_INSTRUCTION
+### 4. Удалить из ROUTER_INSTRUCTION
 
 В файле `app/config/agent_config.py` (строки 27-34) удали строку с описанием маршрута:
 ```python
@@ -128,7 +166,8 @@ from app.agents.{route_name}_stage import {route_name}_agent
 При создании/удалении агента нужно изменить:
 
 1. `agents/{route_name}_stage.py` - создать/удалить файл
-2. `agents/message_router.py` - импорт, valid_routes, словарь agents
-3. `config/agent_config.py` - ROUTER_INSTRUCTION
+2. `agents/registry.py` - **ОБЯЗАТЕЛЬНО** зарегистрировать/удалить агента в реестре
+3. `agents/message_router.py` - импорт, valid_routes, словарь agents
+4. `agents/router_stage.py` - обновить ROUTER_STAGE_INSTRUCTION (добавить описание маршрута)
 
 

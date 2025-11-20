@@ -56,63 +56,42 @@ class PromptParser:
         return ""
     
     def _extract_stages(self, router_content: str) -> List[Dict[str, str]]:
-        """Извлекает информацию о стадиях.
+        """Извлекает информацию о стадиях из реестра агентов.
         
         Args:
-            router_content: Содержимое message_router.py
+            router_content: Содержимое message_router.py (не используется, оставлено для совместимости)
             
         Returns:
             Список словарей со стадиями
         """
-        stages = []
-        
-        # Извлекаем список валидных стадий из роутера
-        valid_routes_pattern = r'valid_routes\s*=\s*\[(.*?)\]'
-        match = re.search(valid_routes_pattern, router_content, re.DOTALL)
-        if match:
-            routes_str = match.group(1)
-            route_keys = re.findall(r'"([^"]+)"', routes_str)
+        try:
+            from app.agents.registry import get_registry
             
-            for key in route_keys:
+            registry = get_registry()
+            agents = registry.get_all_agents()
+            
+            stages = []
+            for agent in agents:
                 stage_info = {
-                    "key": key,
-                    "name": self._get_stage_name(key),
-                    "prompt": self._extract_stage_prompt_from_file(key)
+                    "key": agent["key"],
+                    "name": agent["name"],
+                    "prompt": self._extract_stage_prompt_from_file(agent["key"], agent["file"])
                 }
                 stages.append(stage_info)
-        
-        return stages
+            
+            return stages
+        except Exception as e:
+            # Если реестр недоступен, возвращаем пустой список
+            print(f"[WARNING] Не удалось загрузить агентов из реестра: {e}")
+            return []
     
-    def _get_stage_name(self, key: str) -> str:
-        """Преобразует ключ стадии в читаемое имя."""
-        names = {
-            "greeting": "Приветствие",
-            "information_gathering": "Сбор информации",
-            "booking": "Бронирование",
-            "booking_to_master": "Бронирование к мастеру",
-            "view_my_booking": "Просмотр моей записи",
-            "reschedule": "Перенесение записи",
-            "cancellation_request": "Отмена записи",
-        }
-        return names.get(key, key.replace("_", " ").title())
-    
-    def _extract_stage_prompt_from_file(self, stage_key: str) -> str:
-        """Извлекает промпт для конкретной стадии из файла агента."""
-        # Маппинг ключей стадий на имена файлов
-        stage_file_mapping = {
-            "greeting": "greeting_stage.py",
-            "information_gathering": "information_gathering_stage.py",
-            "booking": "booking_stage.py",
-            "booking_to_master": "booking_to_master_stage.py",
-            "view_my_booking": "view_my_booking_stage.py",
-            "reschedule": "reschedule_stage.py",
-            "cancellation_request": "cancellation_request_stage.py",
-        }
+    def _extract_stage_prompt_from_file(self, stage_key: str, file_name: str) -> str:
+        """Извлекает промпт для конкретной стадии из файла агента.
         
-        file_name = stage_file_mapping.get(stage_key)
-        if not file_name:
-            return ""
-        
+        Args:
+            stage_key: Ключ стадии
+            file_name: Имя файла агента
+        """
         stage_file = self.agents_dir / file_name
         if not stage_file.exists():
             return ""

@@ -58,31 +58,31 @@ class PromptUpdater:
     
     def update_stage_prompt(self, stage_key: str, new_prompt: str) -> None:
         """Обновляет промпт стадии в файле агента."""
-        # Маппинг ключей стадий на имена файлов
-        stage_file_mapping = {
-            "greeting": "greeting_stage.py",
-            "information_gathering": "information_gathering_stage.py",
-            "booking": "booking_stage.py",
-            "booking_to_master": "booking_to_master_stage.py",
-            "view_my_booking": "view_my_booking_stage.py",
-            "reschedule": "reschedule_stage.py",
-            "cancellation_request": "cancellation_request_stage.py",
-        }
-        
-        file_name = stage_file_mapping.get(stage_key)
-        if not file_name:
-            raise ValueError(f"Неизвестная стадия: {stage_key}")
-        
-        stage_file = self.agents_dir / file_name
-        if not stage_file.exists():
-            raise FileNotFoundError(f"Файл агента не найден: {stage_file}")
-        
-        content = self._read_content(stage_file)
-        
-        # Ищем и обновляем промпт стадии в формате: STAGE_INSTRUCTION = """..."""
-        pattern = rf'([A-Z_]+_STAGE_INSTRUCTION\s*=\s*""").*?(""")'
-        replacement = rf'\1{new_prompt}\2'
-        content = re.sub(pattern, replacement, content, flags=re.DOTALL)
-        
-        self._write_content(stage_file, content)
+        try:
+            from app.agents.registry import get_registry
+            
+            registry = get_registry()
+            agent_info = registry.get_agent_info(stage_key)
+            
+            if not agent_info:
+                raise ValueError(f"Неизвестная стадия: {stage_key}. Зарегистрируйте агента в app/agents/registry.py")
+            
+            file_name = agent_info.get("file")
+            if not file_name:
+                raise ValueError(f"Для стадии {stage_key} не указан файл в реестре")
+            
+            stage_file = self.agents_dir / file_name
+            if not stage_file.exists():
+                raise FileNotFoundError(f"Файл агента не найден: {stage_file}")
+            
+            content = self._read_content(stage_file)
+            
+            # Ищем и обновляем промпт стадии в формате: STAGE_INSTRUCTION = """..."""
+            pattern = rf'([A-Z_]+_STAGE_INSTRUCTION\s*=\s*""").*?(""")'
+            replacement = rf'\1{new_prompt}\2'
+            content = re.sub(pattern, replacement, content, flags=re.DOTALL)
+            
+            self._write_content(stage_file, content)
+        except ImportError:
+            raise ValueError(f"Не удалось загрузить реестр агентов. Убедитесь, что app/agents/registry.py существует")
     

@@ -9,45 +9,19 @@ from langchain_core.tools import BaseTool
 
 def get_all_tools() -> List[BaseTool]:
     """
-    Получить все инструменты напрямую из модулей.
+    Получить все инструменты из реестра.
     
     Returns:
         Список всех инструментов
     """
     try:
-        # Импортируем все инструменты напрямую
-        from app.tools.get_categories import get_categories_tool
-        from app.tools.get_services import get_services_tool
-        from app.tools.view_service import view_service_tool
-        from app.tools.about_salon import about_salon_tool
-        from app.tools.masters import masters_tool
-        from app.tools.book_times import book_times_tool
-        from app.tools.find_slots import find_slots_tool
-        from app.tools.create_booking import create_booking_tool
-        from app.tools.get_client_records import get_client_records_tool
-        from app.tools.reschedule_booking import reschedule_booking_tool
-        from app.tools.cancel_booking import cancel_booking_tool
-        from app.tools.find_master_by_service import find_master_by_service_tool
-        from app.tools.call_manager import call_manager_tool
+        from app.tools.registry import get_registry
         
-        tools = [
-            get_categories_tool,
-            get_services_tool,
-            view_service_tool,
-            about_salon_tool,
-            masters_tool,
-            book_times_tool,
-            find_slots_tool,
-            create_booking_tool,
-            get_client_records_tool,
-            reschedule_booking_tool,
-            cancel_booking_tool,
-            find_master_by_service_tool,
-            call_manager_tool,
-        ]
+        registry = get_registry()
+        tools = registry.get_all_tools()
         
         # Логируем для отладки
-        print(f"[DEBUG] Загружено инструментов: {len(tools)}")
+        print(f"[DEBUG] Загружено инструментов из реестра: {len(tools)}")
         if tools:
             print(f"[DEBUG] Имена инструментов: {[t.name for t in tools]}")
         
@@ -55,7 +29,7 @@ def get_all_tools() -> List[BaseTool]:
     except Exception as e:
         # Логируем ошибку для диагностики
         import traceback
-        error_msg = f"Ошибка загрузки инструментов: {str(e)}\n{traceback.format_exc()}"
+        error_msg = f"Ошибка загрузки инструментов из реестра: {str(e)}\n{traceback.format_exc()}"
         print(f"[ERROR] {error_msg}")
         # Если не удалось загрузить инструменты, возвращаем пустой список
         return []
